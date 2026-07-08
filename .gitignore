@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Environment and secrets
+.env
+.streamlit/secrets.toml
+
+# Local datasets
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# Trained model artifacts
+models/artifacts/*
+!models/artifacts/.gitkeep
+
+# Notebook and tool caches
+.ipynb_checkpoints/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# macOS
+.DS_Store
