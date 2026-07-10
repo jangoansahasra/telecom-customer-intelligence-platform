@@ -10,23 +10,27 @@ import streamlit as st
 
 FEATURES_PATH = Path("data/processed/customer_features.parquet")
 SCORES_PATH = Path("data/processed/customer_risk_scores.parquet")
+DEMO_FEATURES_PATH = Path("data/demo/customer_features_demo.parquet")
+DEMO_SCORES_PATH = Path("data/demo/customer_risk_scores_demo.parquet")
 
 
 @st.cache_data
-def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
-    if not FEATURES_PATH.exists():
-        st.error(
-            "Missing customer feature table. Run "
-            "`python -m telecom_intelligence.features.build_customer_features` first."
-        )
-        st.stop()
+def load_data() -> tuple[pd.DataFrame, pd.DataFrame, str]:
+    if FEATURES_PATH.exists() and SCORES_PATH.exists():
+        features = pd.read_parquet(FEATURES_PATH)
+        scores = pd.read_parquet(SCORES_PATH)
+        return features, scores, "full local processed dataset"
 
-    if not SCORES_PATH.exists():
-        st.error(
-            "Missing customer risk scores. Run "
-            "`python -m telecom_intelligence.ml.score_customers` first."
-        )
-        st.stop()
+    if DEMO_FEATURES_PATH.exists() and DEMO_SCORES_PATH.exists():
+        features = pd.read_parquet(DEMO_FEATURES_PATH)
+        scores = pd.read_parquet(DEMO_SCORES_PATH)
+        return features, scores, "committed demo dataset"
+
+    st.error(
+        "Missing customer data. Run the local data pipeline or build demo data with "
+        "`python scripts/build_demo_data.py`."
+    )
+    st.stop()
 
     features = pd.read_parquet(FEATURES_PATH)
     scores = pd.read_parquet(SCORES_PATH)
@@ -44,7 +48,7 @@ def main() -> None:
         layout="wide",
     )
 
-    features, scores = load_data()
+    features, scores, data_mode = load_data()
     customer_360 = features.merge(
         scores[
             [
@@ -65,6 +69,7 @@ def main() -> None:
         "Portfolio analytics platform using IBM Telco churn data plus clearly "
         "labeled synthetic telecom domain tables."
     )
+    st.info(f"Data mode: {data_mode}")
 
     total_customers = len(customer_360)
     churn_rate = customer_360["churned"].mean()

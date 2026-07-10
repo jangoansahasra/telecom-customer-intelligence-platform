@@ -9,14 +9,28 @@ import streamlit as st
 
 FEATURES_PATH = Path("data/processed/customer_features.parquet")
 SCORES_PATH = Path("data/processed/customer_risk_scores.parquet")
+DEMO_FEATURES_PATH = Path("data/demo/customer_features_demo.parquet")
+DEMO_SCORES_PATH = Path("data/demo/customer_risk_scores_demo.parquet")
 
 
 @st.cache_data
-def load_customer_360() -> pd.DataFrame:
-    features = pd.read_parquet(FEATURES_PATH)
-    scores = pd.read_parquet(SCORES_PATH)
+def load_customer_360() -> tuple[pd.DataFrame, str]:
+    if FEATURES_PATH.exists() and SCORES_PATH.exists():
+        features = pd.read_parquet(FEATURES_PATH)
+        scores = pd.read_parquet(SCORES_PATH)
+        data_mode = "full local processed dataset"
+    elif DEMO_FEATURES_PATH.exists() and DEMO_SCORES_PATH.exists():
+        features = pd.read_parquet(DEMO_FEATURES_PATH)
+        scores = pd.read_parquet(DEMO_SCORES_PATH)
+        data_mode = "committed demo dataset"
+    else:
+        st.error(
+            "Missing customer data. Run the local pipeline or build demo data with "
+            "`python scripts/build_demo_data.py`."
+        )
+        st.stop()
 
-    return features.merge(
+    customer_360 = features.merge(
         scores[
             [
                 "customer_id",
@@ -30,6 +44,8 @@ def load_customer_360() -> pd.DataFrame:
         on="customer_id",
         how="left",
     )
+
+    return customer_360, data_mode
 
 
 def format_currency(value: float) -> str:
@@ -45,7 +61,8 @@ def main() -> None:
 
     st.title("👤 Customer 360")
 
-    customer_360 = load_customer_360()
+    customer_360, data_mode = load_customer_360()
+    st.info(f"Data mode: {data_mode}")
 
     selected_customer_id = st.selectbox(
         "Select a customer",
