@@ -11,18 +11,29 @@ FEATURES_PATH = Path("data/processed/customer_features.parquet")
 SCORES_PATH = Path("data/processed/customer_risk_scores.parquet")
 DEMO_FEATURES_PATH = Path("data/demo/customer_features_demo.parquet")
 DEMO_SCORES_PATH = Path("data/demo/customer_risk_scores_demo.parquet")
+EXPLANATIONS_PATH = Path("data/processed/customer_churn_explanations.parquet")
+DEMO_EXPLANATIONS_PATH = Path("data/demo/customer_churn_explanations_demo.parquet")
 
 
 @st.cache_data
 def load_customer_360() -> tuple[pd.DataFrame, str]:
+    explanations = None
+
     if FEATURES_PATH.exists() and SCORES_PATH.exists():
         features = pd.read_parquet(FEATURES_PATH)
         scores = pd.read_parquet(SCORES_PATH)
         data_mode = "full local processed dataset"
+
+        if EXPLANATIONS_PATH.exists():
+            explanations = pd.read_parquet(EXPLANATIONS_PATH)
+
     elif DEMO_FEATURES_PATH.exists() and DEMO_SCORES_PATH.exists():
         features = pd.read_parquet(DEMO_FEATURES_PATH)
         scores = pd.read_parquet(DEMO_SCORES_PATH)
         data_mode = "committed demo dataset"
+
+        if DEMO_EXPLANATIONS_PATH.exists():
+            explanations = pd.read_parquet(DEMO_EXPLANATIONS_PATH)
     else:
         st.error(
             "Missing customer data. Run the local pipeline or build demo data with "
@@ -44,6 +55,22 @@ def load_customer_360() -> tuple[pd.DataFrame, str]:
         on="customer_id",
         how="left",
     )
+
+    if explanations is not None:
+        explanation_columns = [
+            "customer_id",
+            "top_factor_1",
+            "top_factor_1_impact",
+            "top_factor_2",
+            "top_factor_2_impact",
+            "top_factor_3",
+            "top_factor_3_impact",
+        ]
+        customer_360 = customer_360.merge(
+            explanations[explanation_columns],
+            on="customer_id",
+            how="left",
+        )
 
     return customer_360, data_mode
 
@@ -100,6 +127,41 @@ def main() -> None:
                 "Has BYOD": bool(customer["has_byod"]),
                 "Has 5G": bool(customer["has_5g"]),
             }
+        )
+    st.subheader("Top churn risk factors")
+
+    if "top_factor_1" in customer_360.columns:
+        explanation_rows = [
+            {
+                "rank": 1,
+                "factor": customer["top_factor_1"],
+                "impact": customer["top_factor_1_impact"],
+            },
+            {
+                "rank": 2,
+                "factor": customer["top_factor_2"],
+                "impact": customer["top_factor_2_impact"],
+            },
+            {
+                "rank": 3,
+                "factor": customer["top_factor_3"],
+                "impact": customer["top_factor_3_impact"],
+            },
+        ]
+
+        st.dataframe(
+            pd.DataFrame(explanation_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            "Positive SHAP impact values indicate features that pushed the churn "
+            "prediction higher for this customer."
+        )
+    else:
+        st.info(
+            "SHAP explanations are not available yet. Run "
+            "`python -m telecom_intelligence.ml.explain_churn_predictions`."
         )
 
     with right_col:
