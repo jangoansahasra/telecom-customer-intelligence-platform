@@ -8,6 +8,20 @@ The deployed Streamlit application is available here:
 
 [Telecom Customer Intelligence Platform](https://telecom-customer-intelligence-platformbranchmain-eat8m2wbwfv9c.streamlit.app/)
 
+## Application screenshots
+
+### Executive overview
+
+![Executive overview dashboard](docs/screenshots/home-dashboard.png)
+
+### Customer 360 with SHAP explanations
+
+![Customer 360 with SHAP explanations](docs/screenshots/customer-360-shap.png)
+
+### Complaint analysis
+
+![Complaint analysis dashboard](docs/screenshots/complaint-analysis.png)
+
 ## Project overview
 
 This project simulates a modern telecom customer intelligence platform for B2C fixed broadband, mobile, and BYOD customers.
